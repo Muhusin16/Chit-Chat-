@@ -55,6 +55,17 @@ export default function Chat() {
         setCurrentChat(chat);
     };
 
+    const handleLogout = () => {
+        // Disconnect the socket connection
+        if (socket.current) {
+            socket.current.disconnect();
+        }
+        // Clear user data from local storage
+        localStorage.removeItem(process.env.REACT_APP_LOCALHOST_KEY);
+        // Navigate to the registration page
+        navigate("/login");
+    };
+
     return (
         <>
             <Container>
@@ -66,6 +77,7 @@ export default function Chat() {
                         <ChatContainer currentChat={currentChat} socket={socket} />
                     )}
                 </div>
+                <LogoutButton onClick={handleLogout}>Go to Login Page</LogoutButton>
             </Container>
         </>
     );
@@ -89,5 +101,18 @@ const Container = styled.div`
     @media screen and (min-width: 720px) and (max-width: 1080px) {
       grid-template-columns: 35% 65%;
     }
+  }
+`;
+
+const LogoutButton = styled.button`
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  border-radius: 0.3rem;
+  cursor: pointer;
+  &:hover {
+    background-color: #ff3333;
   }
 `;

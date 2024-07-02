@@ -10,7 +10,7 @@ export default function Welcome() {
       const data = await JSON.parse(
         localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
       );
-      setUserName(data.username);
+      setUserName(data?.username);
     };
     fetchUserName();
   }, []);
