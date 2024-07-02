@@ -9,11 +9,12 @@ export default function Contacts({ contacts, changeChat }) {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const data = await JSON.parse(
-        localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
-      );
-      setCurrentUserName(data.username);
-      setCurrentUserImage(data.avatarImage);
+      const storedData = localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY);
+      if (storedData) {
+        const data = await JSON.parse(storedData);
+        setCurrentUserName(data?.username);
+        setCurrentUserImage(data?.avatarImage);
+      }
     };
     fetchUserData();
   }, []);
@@ -48,7 +49,7 @@ export default function Contacts({ contacts, changeChat }) {
                     />
                   </div>
                   <div className="username">
-                    <h3>{contact.username}</h3>
+                    <h3>{contact?.username}</h3>
                   </div>
                 </div>
               );

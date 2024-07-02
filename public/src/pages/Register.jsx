@@ -10,7 +10,7 @@ import { registerRoute } from "../utils/APIRoutes";
 export default function Register() {
     const navigate = useNavigate();
     const toastOptions = {
-        position: "bottom-right",
+        position: "top-right",
         autoClose: 8000,
         pauseOnHover: true,
         draggable: true,
