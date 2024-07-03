@@ -32,46 +32,47 @@ export default function ChatContainer({ currentChat, socket }) {
   
     fetchData();
   }, [currentChat]);
-  
-
-  useEffect(() => {
-    const getCurrentChat = async () => {
-      if (currentChat) {
-        await JSON.parse(
-          localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
-        )._id;
-      }
-    };
-    getCurrentChat();
-  }, [currentChat]);
 
   const handleSendMsg = async (msg) => {
     const data = await JSON.parse(
       localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
     );
-    socket.current.emit("send-msg", {
+  
+    const message = {
       to: currentChat._id,
       from: data._id,
       msg,
-    });
-    await axios.post(sendMessageRoute, {
-      from: data._id,
-      to: currentChat._id,
-      message: msg,
-    });
-
-    const msgs = [...messages];
-    msgs.push({ fromSelf: true, message: msg });
-    setMessages(msgs);
+    };
+  
+    try {
+      // Emit to the socket server
+      socket.current.emit("send-msg", message);
+  
+      // Send to the backend API
+      await axios.post(sendMessageRoute, {
+        from: data._id,
+        to: currentChat._id,
+        message: msg, // Send as a string
+      });
+  
+      // Update local messages with timestamp
+      setMessages((prev) => [
+        ...prev,
+        { fromSelf: true, message: msg, timestamp: new Date() },
+      ]);
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
   };
+  
 
   useEffect(() => {
     if (socket.current) {
       socket.current.on("msg-recieve", (msg) => {
-        setArrivalMessage({ fromSelf: false, message: msg });
+        setArrivalMessage({ fromSelf: false, message: msg.text, timestamp: msg.timestamp });
       });
     }
-  }, []);
+  }, [socket]);
 
   useEffect(() => {
     arrivalMessage && setMessages((prev) => [...prev, arrivalMessage]);
@@ -98,21 +99,22 @@ export default function ChatContainer({ currentChat, socket }) {
         <Logout />
       </div>
       <div className="chat-messages">
-        {messages.map((message) => {
-          return (
-            <div ref={scrollRef} key={uuidv4()}>
-              <div
-                className={`message ${
-                  message.fromSelf ? "sended" : "recieved"
-                }`}
-              >
-                <div className="content ">
-                  <p>{message.message}</p>
-                </div>
+        {messages.map((message) => (
+          <div ref={scrollRef} key={uuidv4()}>
+            <div
+              className={`message ${
+                message.fromSelf ? "sended" : "recieved"
+              }`}
+            >
+              <div className="content">
+                <p>{message.message}</p>
+                <span className="timestamp">
+                  {new Date(message.timestamp).toLocaleTimeString()}
+                </span>
               </div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
       <ChatInput handleSendMsg={handleSendMsg} />
     </Container>
@@ -172,8 +174,16 @@ const Container = styled.div`
         font-size: 1.1rem;
         border-radius: 1rem;
         color: #d1d1d1;
+        position: relative;
         @media screen and (min-width: 720px) and (max-width: 1080px) {
           max-width: 70%;
+        }
+        .timestamp {
+          font-size: 0.8rem;
+          color: #a0a0a0;
+          position: absolute;
+          bottom: -1.5rem;
+          right: 0;
         }
       }
     }

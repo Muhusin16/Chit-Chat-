@@ -34,6 +34,13 @@ export default function Chat() {
         if (currentUser) {
             socket.current = io(host);
             socket.current.emit("add-user", currentUser._id);
+
+            // Cleanup socket connection on component unmount
+            return () => {
+                if (socket.current) {
+                    socket.current.disconnect();
+                }
+            };
         }
     }, [currentUser]);
 
@@ -56,13 +63,10 @@ export default function Chat() {
     };
 
     const handleLogout = () => {
-        // Disconnect the socket connection
         if (socket.current) {
             socket.current.disconnect();
         }
-        // Clear user data from local storage
         localStorage.removeItem(process.env.REACT_APP_LOCALHOST_KEY);
-        // Navigate to the registration page
         navigate("/login");
     };
 

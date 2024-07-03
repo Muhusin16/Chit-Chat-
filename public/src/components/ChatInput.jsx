@@ -2,16 +2,17 @@ import React, { useState } from "react";
 import { BsEmojiSmileFill } from "react-icons/bs";
 import { IoMdSend } from "react-icons/io";
 import styled from "styled-components";
-import Picker from "emoji-picker-react";
+import EmojiPicker from "emoji-picker-react";
 
 export default function ChatInput({ handleSendMsg }) {
   const [msg, setMsg] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
   const handleEmojiPickerhideShow = () => {
     setShowEmojiPicker(!showEmojiPicker);
   };
 
-  const handleEmojiClick = (event, emojiObject) => {
+  const handleEmojiClick = (emojiObject) => {
     let message = msg;
     message += emojiObject.emoji;
     setMsg(message);
@@ -30,13 +31,15 @@ export default function ChatInput({ handleSendMsg }) {
       <div className="button-container">
         <div className="emoji">
           <BsEmojiSmileFill onClick={handleEmojiPickerhideShow} />
-          {showEmojiPicker && <Picker onEmojiClick={handleEmojiClick} />}
+          {showEmojiPicker && <EmojiPickerWrapper>
+            <EmojiPicker onEmojiClick={handleEmojiClick} />
+          </EmojiPickerWrapper>}
         </div>
       </div>
-      <form className="input-container" onSubmit={(event) => sendChat(event)}>
+      <form className="input-container" onSubmit={sendChat}>
         <input
           type="text"
-          placeholder="type your message here"
+          placeholder="Type your message here"
           onChange={(e) => setMsg(e.target.value)}
           value={msg}
         />
@@ -48,12 +51,43 @@ export default function ChatInput({ handleSendMsg }) {
   );
 }
 
+const EmojiPickerWrapper = styled.div`
+  position: absolute;
+  bottom: 60px; /* Adjust this value as needed */
+  z-index: 1000;
+  .emoji-picker-react {
+    background-color: #080420;
+    box-shadow: 0 5px 10px #9a86f3;
+    border-color: #9a86f3;
+    .emoji-scroll-wrapper::-webkit-scrollbar {
+      background-color: #080420;
+      width: 5px;
+      &-thumb {
+        background-color: #9a86f3;
+      }
+    }
+    .emoji-categories {
+      button {
+        filter: contrast(0);
+      }
+    }
+    .emoji-search {
+      background-color: transparent;
+      border-color: #9a86f3;
+    }
+    .emoji-group:before {
+      background-color: #080420;
+    }
+  }
+`;
+
 const Container = styled.div`
   display: grid;
   align-items: center;
   grid-template-columns: 5% 95%;
   background-color: #080420;
   padding: 0 2rem;
+  position: relative; /* Added to position emoji picker correctly */
   @media screen and (min-width: 720px) and (max-width: 1080px) {
     padding: 0 1rem;
     gap: 1rem;
@@ -69,32 +103,6 @@ const Container = styled.div`
         font-size: 1.5rem;
         color: #ffff00c8;
         cursor: pointer;
-      }
-      .emoji-picker-react {
-        position: absolute;
-        top: -350px;
-        background-color: #080420;
-        box-shadow: 0 5px 10px #9a86f3;
-        border-color: #9a86f3;
-        .emoji-scroll-wrapper::-webkit-scrollbar {
-          background-color: #080420;
-          width: 5px;
-          &-thumb {
-            background-color: #9a86f3;
-          }
-        }
-        .emoji-categories {
-          button {
-            filter: contrast(0);
-          }
-        }
-        .emoji-search {
-          background-color: transparent;
-          border-color: #9a86f3;
-        }
-        .emoji-group:before {
-          background-color: #080420;
-        }
       }
     }
   }
@@ -113,7 +121,6 @@ const Container = styled.div`
       border: none;
       padding-left: 1rem;
       font-size: 1.2rem;
-
       &::selection {
         background-color: #9a86f3;
       }

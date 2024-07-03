@@ -27,7 +27,7 @@ export default function Register() {
         if (localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)) {
             navigate("/");
         }
-    }, []);
+    }, [navigate]);
 
     const handleChange = (event) => {
         setValues({ ...values, [event.target.name]: event.target.value });
@@ -60,6 +60,7 @@ export default function Register() {
 
         return true;
     };
+
     const handleSubmit = async (event) => {
         event.preventDefault();
         if (handleValidation()) {
@@ -87,23 +88,44 @@ export default function Register() {
         <>
             <FormContainer>
                 <form onSubmit={(event) => handleSubmit(event)}>
-                    <div className='brand'>
+                    <div className="brand">
                         <img src={Logo} alt="Logo" />
                         <h1>ChitChat</h1>
                     </div>
-                    <input type="text" placeholder="Username" name='username' onChange={(e) => handleChange(e)} />
-                    <input type="password" placeholder="Password" name='password' onChange={(e) => handleChange(e)} />
-                    <input type="password" placeholder="Confirm Password" name='confirmPassword' onChange={(e) => handleChange(e)} />
-                    <input type='email' placeholder='Email' name='email' onChange={(e) => handleChange(e)} />
-                    <button type='submit'>Create User</button>
+                    <input
+                        type="text"
+                        placeholder="Username"
+                        name="username"
+                        onChange={(e) => handleChange(e)}
+                    />
+                    <input
+                        type="email"
+                        placeholder="Email"
+                        name="email"
+                        onChange={(e) => handleChange(e)}
+                    />
+                    <input
+                        type="password"
+                        placeholder="Password"
+                        name="password"
+                        onChange={(e) => handleChange(e)}
+                    />
+                    <input
+                        type="password"
+                        placeholder="Confirm Password"
+                        name="confirmPassword"
+                        onChange={(e) => handleChange(e)}
+                    />
+                    <button type="submit">Create User</button>
                     <span>
-                        Already have an account ? <Link to="/login">Login.</Link>
+                        Already have an account? <Link to="/login">Login.</Link>
                     </span>
                 </form>
             </FormContainer>
         </>
-    )
+    );
 }
+
 const FormContainer = styled.div`
   height: 100vh;
   width: 100vw;
@@ -126,7 +148,6 @@ const FormContainer = styled.div`
       text-transform: uppercase;
     }
   }
-
   form {
     display: flex;
     flex-direction: column;
