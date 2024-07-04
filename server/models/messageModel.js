@@ -5,6 +5,7 @@ const messageSchema = new Schema(
   {
     message: {
       text: { type: String, required: true },
+      timestamp: { type: Date, default: Date.now }, 
     },
     users: [{ type: Schema.Types.ObjectId, ref: "User" }],
     sender: {
@@ -12,6 +13,7 @@ const messageSchema = new Schema(
       ref: "User",
       required: true,
     },
+    read: { type: Boolean, default: false }, 
   },
   {
     timestamps: true,

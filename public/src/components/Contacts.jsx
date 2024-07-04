@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import Logo from "../assets/logo.svg";
+import axios from "axios";
+import { getUnreadMessagesAndLastMessageTimeRoute } from "../utils/APIRoutes"
 
 export default function Contacts({ contacts, changeChat }) {
   const [currentUserName, setCurrentUserName] = useState(undefined);
   const [currentUserImage, setCurrentUserImage] = useState(undefined);
   const [currentSelected, setCurrentSelected] = useState(undefined);
+  const [contactsData, setContactsData] = useState([]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -17,6 +20,25 @@ export default function Contacts({ contacts, changeChat }) {
       }
     };
     fetchUserData();
+  }, []);
+
+  useEffect(() => {
+    const fetchContactsData = async () => {
+      try {
+        const storedData = localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY);
+        if (storedData) {
+          const data = await JSON.parse(storedData);
+          console.log("data", data);
+          const response = await axios.post(getUnreadMessagesAndLastMessageTimeRoute, {
+            userId: data._id,
+          });
+          setContactsData(response.data.contactsData);
+        }
+      } catch (error) {
+        console.error("Error fetching contacts data:", error.response || error);
+      }
+    };
+    fetchContactsData();
   }, []);
 
   const changeCurrentChat = (index, contact) => {
@@ -33,23 +55,26 @@ export default function Contacts({ contacts, changeChat }) {
             <h3>chitChat</h3>
           </div>
           <div className="contacts">
-            {contacts.map((contact, index) => {
+            {contactsData.map((contactData, index) => {
               return (
                 <div
-                  key={contact._id}
-                  className={`contact ${
-                    index === currentSelected ? "selected" : ""
-                  }`}
-                  onClick={() => changeCurrentChat(index, contact)}
+                  key={contactData.contact._id}
+                  className={`contact ${index === currentSelected ? "selected" : ""}`}
+                  onClick={() => changeCurrentChat(index, contactData.contact)}
                 >
                   <div className="avatar">
-                    <img
-                      src={`data:image/svg+xml;base64,${contact.avatarImage}`}
-                      alt=""
-                    />
+                    <img src={`data:image/svg+xml;base64,${contactData.contact.avatarImage}`} alt="" />
                   </div>
-                  <div className="username">
-                    <h3>{contact?.username}</h3>
+                  <div className="details">
+                    <div className="username">
+                      <h3>{contactData.contact.username}</h3>
+                    </div>
+                    <div className="message-info">
+                      <span className="unread-count">{contactData.unreadCount}</span>
+                      <span className="last-message-time">
+                        {new Date(contactData.lastMessageTime).toLocaleTimeString()}
+                      </span>
+                    </div>
                   </div>
                 </div>
               );
@@ -57,10 +82,7 @@ export default function Contacts({ contacts, changeChat }) {
           </div>
           <div className="current-user">
             <div className="avatar">
-              <img
-                src={`data:image/svg+xml;base64,${currentUserImage}`}
-                alt="avatar"
-              />
+              <img src={`data:image/svg+xml;base64,${currentUserImage}`} alt="avatar" />
             </div>
             <div className="username">
               <h2>{currentUserName}</h2>
@@ -120,9 +142,25 @@ const Container = styled.div`
           height: 3rem;
         }
       }
-      .username {
-        h3 {
-          color: white;
+      .details {
+        display: flex;
+        flex-direction: column;
+        .username {
+          h3 {
+            color: white;
+          }
+        }
+        .message-info {
+          display: flex;
+          justify-content: space-between;
+          .unread-count {
+            color: red;
+            font-weight: bold;
+          }
+          .last-message-time {
+            color: gray;
+            font-size: 0.8rem;
+          }
         }
       }
     }
@@ -130,7 +168,6 @@ const Container = styled.div`
       background-color: #9a86f3;
     }
   }
-
   .current-user {
     background-color: #0d0d30;
     display: flex;
