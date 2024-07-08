@@ -41,10 +41,57 @@ export default function Contacts({ contacts, changeChat }) {
     fetchContactsData();
   }, []);
 
-  const changeCurrentChat = (index, contact) => {
+  const changeCurrentChat = async (index, contact) => {
     setCurrentSelected(index);
     changeChat(contact);
+  
+    try {
+      const storedData = localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY);
+      if (storedData) {
+        const data = await JSON.parse(storedData);
+        console.log("Marking messages as read for user:", data._id, "and contact:", contact._id); // Log data
+  
+        const response = await axios.post("/api/messages/mark-messages-as-read", {
+          from: data._id,
+          to: contact._id,
+        });
+  
+        console.log("Mark messages as read response:", response.data); // Log response
+  
+        // Fetch the updated contacts data to reflect changes
+        fetchContactsData();
+      }
+    } catch (error) {
+      console.error("Error marking messages as read:", error.response || error); // Log error
+    }
   };
+  
+
+  const fetchContactsData = async () => {
+    try {
+      const storedData = localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY);
+      if (storedData) {
+        const data = await JSON.parse(storedData);
+        console.log("Fetching contacts data for user:", data._id); // Log data
+  
+        const response = await axios.post(getUnreadMessagesAndLastMessageTimeRoute, {
+          userId: data._id,
+        });
+  
+        console.log("Fetched contacts data:", response.data.contactsData); // Log response
+  
+        setContactsData(response.data.contactsData);
+      }
+    } catch (error) {
+      console.error("Error fetching contacts data:", error.response || error); // Log error
+    }
+  };
+  
+
+  useEffect(() => {
+    fetchContactsData();
+  }, []);
+
 
   return (
     <>
@@ -70,7 +117,9 @@ export default function Contacts({ contacts, changeChat }) {
                       <h3>{contactData.contact.username}</h3>
                     </div>
                     <div className="message-info">
-                      <span className="unread-count">{contactData.unreadCount}</span>
+                      {contactData.unreadCount > 0 && (
+                        <span className="unread-count">{contactData.unreadCount}</span>
+                      )}
                       <span className="last-message-time">
                         {new Date(contactData.lastMessageTime).toLocaleTimeString()}
                       </span>

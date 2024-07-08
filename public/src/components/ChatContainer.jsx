@@ -4,9 +4,9 @@ import ChatInput from "./ChatInput";
 import Logout from "./Logout";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
-import { sendMessageRoute, recieveMessageRoute } from "../utils/APIRoutes";
+import { sendMessageRoute, recieveMessageRoute, readMessageRoute, getUnreadMessagesAndLastMessageTimeRoute } from "../utils/APIRoutes";
 
-export default function ChatContainer({ currentChat, socket }) {
+export default function ChatContainer({ currentChat, socket, setContactsData }) {
   const [messages, setMessages] = useState([]);
   const scrollRef = useRef();
   const [arrivalMessage, setArrivalMessage] = useState(null);
@@ -17,19 +17,30 @@ export default function ChatContainer({ currentChat, socket }) {
         const data = await JSON.parse(
           localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
         );
-  
+
         if (data && currentChat) {
           const response = await axios.post(recieveMessageRoute, {
             from: data._id,
             to: currentChat._id,
           });
           setMessages(response.data);
+
+          // Mark messages as read
+          await axios.post(readMessageRoute, {
+            from: data._id,
+            to: currentChat._id,
+          });
+
+          // Fetch and update contacts data
+          if (setContactsData) {
+            await fetchContactsData(data._id);
+          }
         }
       } catch (error) {
-        console.error("Error fetching messages:", error);
+        console.error("Error fetching messages:", error.response || error);
       }
     };
-  
+
     fetchData();
   }, [currentChat]);
 
@@ -37,34 +48,33 @@ export default function ChatContainer({ currentChat, socket }) {
     const data = await JSON.parse(
       localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
     );
-  
+
     const message = {
       to: currentChat._id,
       from: data._id,
       msg,
     };
-  
+
     try {
       // Emit to the socket server
       socket.current.emit("send-msg", message);
-  
+
       // Send to the backend API
       await axios.post(sendMessageRoute, {
         from: data._id,
         to: currentChat._id,
         message: msg, // Send as a string
       });
-  
+
       // Update local messages with timestamp
       setMessages((prev) => [
         ...prev,
         { fromSelf: true, message: msg, timestamp: new Date() },
       ]);
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("Error sending message:", error.response || error);
     }
   };
-  
 
   useEffect(() => {
     if (socket.current) {
@@ -81,6 +91,17 @@ export default function ChatContainer({ currentChat, socket }) {
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const fetchContactsData = async (userId) => {
+    try {
+      const response = await axios.post(getUnreadMessagesAndLastMessageTimeRoute, {
+        userId,
+      });
+      setContactsData(response.data.contactsData);
+    } catch (error) {
+      console.error("Error fetching contacts data:", error.response || error);
+    }
+  };
 
   return (
     <Container>
@@ -102,9 +123,8 @@ export default function ChatContainer({ currentChat, socket }) {
         {messages.map((message) => (
           <div ref={scrollRef} key={uuidv4()}>
             <div
-              className={`message ${
-                message.fromSelf ? "sended" : "recieved"
-              }`}
+              className={`message ${message.fromSelf ? "sended" : "recieved"
+                }`}
             >
               <div className="content">
                 <p>{message.message}</p>
