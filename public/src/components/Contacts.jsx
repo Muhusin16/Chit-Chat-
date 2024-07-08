@@ -2,23 +2,28 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import Logo from "../assets/logo.svg";
 import axios from "axios";
-import { getUnreadMessagesAndLastMessageTimeRoute } from "../utils/APIRoutes"
+import { getUnreadMessagesAndLastMessageTimeRoute } from "../utils/APIRoutes";
 
 export default function Contacts({ contacts, changeChat }) {
-  const [currentUserName, setCurrentUserName] = useState(undefined);
-  const [currentUserImage, setCurrentUserImage] = useState(undefined);
-  const [currentSelected, setCurrentSelected] = useState(undefined);
+  const [currentUserName, setCurrentUserName] = useState("");
+  const [currentUserImage, setCurrentUserImage] = useState("");
+  const [currentSelected, setCurrentSelected] = useState(null);
   const [contactsData, setContactsData] = useState([]);
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const storedData = localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY);
-      if (storedData) {
-        const data = await JSON.parse(storedData);
-        setCurrentUserName(data?.username);
-        setCurrentUserImage(data?.avatarImage);
+      try {
+        const storedData = localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY);
+        if (storedData) {
+          const data = JSON.parse(storedData);
+          setCurrentUserName(data?.username || "");
+          setCurrentUserImage(data?.avatarImage || "");
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
       }
     };
+
     fetchUserData();
   }, []);
 
@@ -27,71 +32,45 @@ export default function Contacts({ contacts, changeChat }) {
       try {
         const storedData = localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY);
         if (storedData) {
-          const data = await JSON.parse(storedData);
-          console.log("data", data);
-          const response = await axios.post(getUnreadMessagesAndLastMessageTimeRoute, {
-            userId: data._id,
-          });
-          setContactsData(response.data.contactsData);
+          const data = JSON.parse(storedData);
+          const response = await axios.post(getUnreadMessagesAndLastMessageTimeRoute, { userId: data._id });
+          setContactsData(response.data.contactsData || []);
         }
       } catch (error) {
-        console.error("Error fetching contacts data:", error.response || error);
+        console.error("Error fetching contacts data:", error);
       }
     };
+
     fetchContactsData();
   }, []);
 
   const changeCurrentChat = async (index, contact) => {
     setCurrentSelected(index);
     changeChat(contact);
-  
+
     try {
       const storedData = localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY);
       if (storedData) {
-        const data = await JSON.parse(storedData);
-        console.log("Marking messages as read for user:", data._id, "and contact:", contact._id); // Log data
-  
-        const response = await axios.post("/api/messages/mark-messages-as-read", {
+        const data = JSON.parse(storedData);
+        // Optimistically update the contactsData state
+        setContactsData(prevContactsData =>
+          prevContactsData.map(contactData =>
+            contactData.contact._id === contact._id
+              ? { ...contactData, unreadCount: 0 }
+              : contactData
+          )
+        );
+
+        await axios.post("/api/messages/mark-messages-as-read", {
           from: data._id,
-          to: contact._id,
+          to: contact._id
         });
-  
-        console.log("Mark messages as read response:", response.data); // Log response
-  
-        // Fetch the updated contacts data to reflect changes
-        fetchContactsData();
       }
     } catch (error) {
-      console.error("Error marking messages as read:", error.response || error); // Log error
+      console.error("Error marking messages as read:", error);
+      // Optional: revert the state update in case of an error
     }
   };
-  
-
-  const fetchContactsData = async () => {
-    try {
-      const storedData = localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY);
-      if (storedData) {
-        const data = await JSON.parse(storedData);
-        console.log("Fetching contacts data for user:", data._id); // Log data
-  
-        const response = await axios.post(getUnreadMessagesAndLastMessageTimeRoute, {
-          userId: data._id,
-        });
-  
-        console.log("Fetched contacts data:", response.data.contactsData); // Log response
-  
-        setContactsData(response.data.contactsData);
-      }
-    } catch (error) {
-      console.error("Error fetching contacts data:", error.response || error); // Log error
-    }
-  };
-  
-
-  useEffect(() => {
-    fetchContactsData();
-  }, []);
-
 
   return (
     <>
@@ -102,32 +81,30 @@ export default function Contacts({ contacts, changeChat }) {
             <h3>chitChat</h3>
           </div>
           <div className="contacts">
-            {contactsData.map((contactData, index) => {
-              return (
-                <div
-                  key={contactData.contact._id}
-                  className={`contact ${index === currentSelected ? "selected" : ""}`}
-                  onClick={() => changeCurrentChat(index, contactData.contact)}
-                >
-                  <div className="avatar">
-                    <img src={`data:image/svg+xml;base64,${contactData.contact.avatarImage}`} alt="" />
+            {contactsData.map((contactData, index) => (
+              <div
+                key={contactData.contact._id}
+                className={`contact ${index === currentSelected ? "selected" : ""}`}
+                onClick={() => changeCurrentChat(index, contactData.contact)}
+              >
+                <div className="avatar">
+                  <img src={`data:image/svg+xml;base64,${contactData.contact.avatarImage}`} alt="" />
+                </div>
+                <div className="details">
+                  <div className="username">
+                    <h3>{contactData.contact.username}</h3>
                   </div>
-                  <div className="details">
-                    <div className="username">
-                      <h3>{contactData.contact.username}</h3>
-                    </div>
-                    <div className="message-info">
-                      {contactData.unreadCount > 0 && (
-                        <span className="unread-count">{contactData.unreadCount}</span>
-                      )}
-                      <span className="last-message-time">
-                        {new Date(contactData.lastMessageTime).toLocaleTimeString()}
-                      </span>
-                    </div>
+                  <div className="message-info">
+                    {contactData.unreadCount > 0 && (
+                      <span className="unread-count">{contactData.unreadCount}</span>
+                    )}
+                    <span className="last-message-time">
+                      {new Date(contactData.lastMessageTime).toLocaleTimeString()}
+                    </span>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
           <div className="current-user">
             <div className="avatar">
