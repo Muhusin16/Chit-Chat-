@@ -6,10 +6,12 @@ import Logo from "../assets/logo.svg";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { loginRoute } from "../utils/APIRoutes";
+import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
 
 export default function Login() {
   const navigate = useNavigate();
   const [values, setValues] = useState({ username: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false); // New state for password visibility
   const toastOptions = {
     position: "bottom-right",
     autoClose: 8000,
@@ -17,11 +19,12 @@ export default function Login() {
     draggable: true,
     theme: "dark",
   };
+
   useEffect(() => {
     if (localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)) {
       navigate("/");
     }
-  }, []);
+  }, [navigate]);
 
   const handleChange = (event) => {
     setValues({ ...values, [event.target.name]: event.target.value });
@@ -29,11 +32,8 @@ export default function Login() {
 
   const validateForm = () => {
     const { username, password } = values;
-    if (username === "") {
-      toast.error("Email and Password is required.", toastOptions);
-      return false;
-    } else if (password === "") {
-      toast.error("Email and Password is required.", toastOptions);
+    if (username === "" || password === "") {
+      toast.error("Username and Password are required.", toastOptions);
       return false;
     }
     return true;
@@ -43,20 +43,20 @@ export default function Login() {
     event.preventDefault();
     if (validateForm()) {
       const { username, password } = values;
-      const { data } = await axios.post(loginRoute, {
-        username,
-        password,
-      });
-      if (data.status === false) {
-        toast.error(data.msg, toastOptions);
-      }
-      if (data.status === true) {
-        localStorage.setItem(
-          process.env.REACT_APP_LOCALHOST_KEY,
-          JSON.stringify(data.user)
-        );
-
-        navigate("/");
+      try {
+        const { data } = await axios.post(loginRoute, { username, password });
+        if (!data.status) {
+          toast.error(data.msg, toastOptions);
+        } else {
+          localStorage.setItem(
+            process.env.REACT_APP_LOCALHOST_KEY,
+            JSON.stringify(data.user)
+          );
+          navigate("/");
+        }
+      } catch (error) {
+        console.error("Error during login:", error);
+        toast.error("An error occurred during login.", toastOptions);
       }
     }
   };
@@ -64,7 +64,7 @@ export default function Login() {
   return (
     <>
       <FormContainer>
-        <form action="" onSubmit={(event) => handleSubmit(event)}>
+        <form onSubmit={handleSubmit}>
           <div className="brand">
             <img src={Logo} alt="logo" />
             <h1>Chit Chat</h1>
@@ -73,18 +73,23 @@ export default function Login() {
             type="text"
             placeholder="Username"
             name="username"
-            onChange={(e) => handleChange(e)}
+            onChange={handleChange}
             min="3"
           />
-          <input
-            type="password"
-            placeholder="Password"
-            name="password"
-            onChange={(e) => handleChange(e)}
-          />
+          <div className="password-container">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              name="password"
+              onChange={handleChange}
+            />
+            <span className="eye-icon" onClick={() => setShowPassword(!showPassword)}>
+              {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
+            </span>
+          </div>
           <button type="submit">Log In</button>
           <span>
-            Don't have an account ? <Link to="/register">Create One.</Link>
+            Don't have an account? <Link to="/register">Create One.</Link>
           </span>
         </form>
       </FormContainer>
@@ -135,6 +140,20 @@ const FormContainer = styled.div`
     &:focus {
       border: 0.1rem solid #997af0;
       outline: none;
+    }
+  }
+  .password-container {
+    position: relative;
+    input {
+      padding-right: 2.5rem; /* Space for the eye icon */
+    }
+    .eye-icon {
+      position: absolute;
+      right: 0.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #4e0eff;
     }
   }
   button {
