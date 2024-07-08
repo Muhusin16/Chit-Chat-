@@ -68,8 +68,6 @@ const markMessagesAsRead = async (req, res, next) => {
   try {
     const { from, to } = req.body;
 
-    console.log("Marking messages as read:", { from, to });
-
     // Check if messages exist before updating
     const unreadMessages = await Messages.find({
       sender: from,
